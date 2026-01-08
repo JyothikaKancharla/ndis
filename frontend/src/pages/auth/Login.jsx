@@ -26,14 +26,18 @@ const Login = () => {
       });
       const data = await response.json();
       if (response.ok) {
-        alert("Login successful!");
-        if (setUser) setUser({ role: data.role, token: data.token });
+        // Save token + user
+        const token = data.token;
+        const user = data.user;
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
+        if (setUser) setUser(user);
         // Redirect based on role
-        if (data.role === "staff") {
-          navigate("/staff");
-        } else if (data.role === "supervisor") {
+        if (user.role === "staff") {
+          navigate("/staff/dashboard");
+        } else if (user.role === "supervisor") {
           navigate("/supervisor");
-        } else if (data.role === "government") {
+        } else if (user.role === "government") {
           navigate("/government");
         } else {
           navigate("/");

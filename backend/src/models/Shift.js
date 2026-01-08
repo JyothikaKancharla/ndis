@@ -7,9 +7,15 @@ const shiftSchema = new mongoose.Schema(
       ref: "User",
       required: true
     },
+    client: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Client"
+    },
     startTime: String,
     endTime: String,
     date: Date,
+    assignmentStart: Date,
+    daysPerWeek: Number,
     status: {
       type: String,
       enum: ["active", "completed"],

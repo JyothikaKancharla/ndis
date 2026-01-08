@@ -24,18 +24,22 @@ exports.login = async (req, res) => {
   }
 
   const token = jwt.sign(
-    { id: user._id, role: user.role },
+    { id: user._id, role: user.role, name: user.name },
     process.env.JWT_SECRET,
     { expiresIn: "8h" }
   );
 
-  res.json({ token, role: user.role });
+  // Return token and basic user info
+  res.json({
+    token,
+    user: { id: user._id, name: user.name, email: user.email, role: user.role, profilePic: user.profilePic }
+  });
 };
 
 // Signup controller for all roles
 exports.signup = async (req, res) => {
   try {
-    const { name, email, gender, age, password, role } = req.body;
+    const { name, email, gender, age, password, role, profilePic } = req.body;
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: "User already exists" });
@@ -48,11 +52,11 @@ exports.signup = async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create and save new user
-    const user = new User({ name, email, gender, age, password: hashedPassword, role });
+    // Create and save new user (allow optional fields)
+    const user = new User({ name, email, gender, age, password: hashedPassword, role, profilePic });
     await user.save();
 
-    res.status(201).json({ message: "Signup successful" });
+    res.status(201).json({ message: "Signup successful", user: { id: user._id, name: user.name, email: user.email, role: user.role } });
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }

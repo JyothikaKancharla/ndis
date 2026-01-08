@@ -1,17 +1,28 @@
 // Placeholder for ProtectedRoute component
-import React from "react";
+import React, { useContext } from "react";
 import { Navigate } from "react-router-dom";
+import { AuthContext } from "../context/AuthContext";
 
-// Dummy authentication check (replace with real logic)
-const isAuthenticated = () => {
-  // TODO: Replace with actual authentication logic
-  return true;
-};
+
+import { useLocation } from "react-router-dom";
 
 const ProtectedRoute = ({ children }) => {
-  if (!isAuthenticated()) {
+  const { user } = useContext(AuthContext);
+  const token = localStorage.getItem("token");
+  const location = useLocation();
+
+  if (!token || !user) {
     return <Navigate to="/login" replace />;
   }
+
+  // Restrict staff from supervisor routes and vice versa
+  if (user.role === "staff" && location.pathname.startsWith("/supervisor")) {
+    return <Navigate to="/staff/dashboard" replace />;
+  }
+  if (user.role === "supervisor" && location.pathname.startsWith("/staff")) {
+    return <Navigate to="/supervisor" replace />;
+  }
+
   return children;
 };
 
