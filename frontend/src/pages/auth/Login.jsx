@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 
 const Login = () => {
-  const [form, setForm] = useState({ email: "", password: "", role: "" });
+  const [form, setForm] = useState({ email: "", password: "" });
   const navigate = useNavigate();
   const { setUser } = useContext(AuthContext);
 
@@ -20,8 +20,7 @@ const Login = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: form.email,
-          password: form.password,
-          role: form.role,
+          password: form.password
         }),
       });
       const data = await response.json();
@@ -76,18 +75,7 @@ const Login = () => {
           onChange={handleChange}
           required
         />
-        <select
-          style={styles.input}
-          name="role"
-          value={form.role}
-          onChange={handleChange}
-          required
-        >
-          <option value="">Login As</option>
-          <option value="staff">Staff</option>
-          <option value="supervisor">Supervisor</option>
-          <option value="government">Government</option>
-        </select>
+        {/* role selector removed — role is read from DB after login */}
         <button style={styles.button} type="submit">Login</button>
         <div style={styles.switchText}>
           Don&apos;t have an account? <a href="/signup" style={styles.link}>Sign up</a>

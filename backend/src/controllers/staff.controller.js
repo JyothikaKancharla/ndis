@@ -294,6 +294,7 @@ exports.getClientsByStaffId = async (req, res) => {
       const query = objectId
         ? { $or: [ { assignedStaff: id }, { assignedStaff: objectId } ] }
         : { assignedStaff: id };
+      console.log('DEBUG getClientsByStaffId - query:', query);
       clients = await Client.find(query);
       console.log('DEBUG getClientsByStaffId - found clients:', clients);
     } catch (err) {
@@ -322,7 +323,8 @@ exports.getClientsByStaffId = async (req, res) => {
     }));
     res.json(enriched);
   } catch (err) {
-    res.status(500).json({ message: "Error fetching clients" });
+    console.error('getClientsByStaffId error:', err);
+    res.status(500).json({ message: "Error fetching clients", error: err.message });
   }
 };
 

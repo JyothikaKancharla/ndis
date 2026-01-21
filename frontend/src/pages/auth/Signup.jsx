@@ -4,8 +4,6 @@ const Signup = () => {
   const [form, setForm] = useState({
     name: "",
     email: "",
-    gender: "",
-    age: "",
     password: "",
     rePassword: "",
     role: ""
@@ -29,8 +27,6 @@ const Signup = () => {
         body: JSON.stringify({
           name: form.name,
           email: form.email,
-          gender: form.gender,
-          age: form.age,
           password: form.password,
           role: form.role,
         }),
@@ -74,28 +70,7 @@ const Signup = () => {
           onChange={handleChange}
           required
         />
-        <select
-          style={styles.input}
-          name="gender"
-          value={form.gender}
-          onChange={handleChange}
-          required
-        >
-          <option value="">Select Gender</option>
-          <option value="male">Male</option>
-          <option value="female">Female</option>
-          <option value="other">Other</option>
-        </select>
-        <input
-          style={styles.input}
-          type="number"
-          name="age"
-          placeholder="Age"
-          value={form.age}
-          onChange={handleChange}
-          min="1"
-          required
-        />
+        {/* gender and age removed — not collected or stored */}
         <input
           style={styles.input}
           type="password"
