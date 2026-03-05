@@ -2,7 +2,7 @@ import { useState, useEffect, useContext, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  Clock, Calendar, Lock, Unlock, User, MapPin, CheckCircle, AlertCircle, FileText, Edit3
+  Clock, Calendar, Lock, Unlock, MapPin, CheckCircle, FileText, Edit3
 } from 'lucide-react';
 import api from '../../api/api';
 import { AuthContext } from '../../context/AuthContext';

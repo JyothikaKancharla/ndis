@@ -14,7 +14,7 @@ export const RecordingProvider = ({ children }) => {
   // Refs for MediaRecorder and stream
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
-  const audioContextRef = useRef(null);
+  const audioContextRef = useRef(null); // eslint-disable-line no-unused-vars
   const chunksRef = useRef([]);
   
   // Speech Recognition
@@ -41,7 +41,7 @@ export const RecordingProvider = ({ children }) => {
     };
 
     recognition.onresult = (event) => {
-      let interimTranscript = '';
+      let interimTranscript = ''; // eslint-disable-line no-unused-vars
       let finalTranscript = '';
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -63,7 +63,11 @@ export const RecordingProvider = ({ children }) => {
 
     recognition.onerror = (event) => {
       console.error('Speech recognition error:', event.error);
-      if (event.error !== 'no-speech') {
+      if (event.error === 'network' && isListeningRef.current) {
+        setTimeout(() => {
+          try { recognition.start(); } catch (_) {}
+        }, 1000);
+      } else if (event.error !== 'no-speech') {
         setError(`Transcription error: ${event.error}`);
       }
     };

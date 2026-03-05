@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   Users, Clock, Calendar, FileText, CheckCircle, Activity,
-  ArrowRight, Bell, Mic
+  ArrowRight, Mic
 } from 'lucide-react';
 import api from '../../api/api';
 import { AuthContext } from '../../context/AuthContext';
@@ -231,7 +231,7 @@ export default function Staffdashboard() {
 
   return (
     <DashboardLayout
-      title={`Welcome back, ${dashboard?.staffName || user?.name || 'User'}`}
+      title={`Welcome back, ${user?.name || dashboard?.staffName || 'User'}`}
       subtitle="Here's an overview of your work today"
       loading={loading}
       error={error}
