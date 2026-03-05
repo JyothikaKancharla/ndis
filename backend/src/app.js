@@ -5,12 +5,20 @@ const path = require("path");
 const connectDB = require("./config/db");
 const app = express();
 
-// Connect to MongoDB (once per cold start)
-connectDB();
-
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Await DB connection on every request (Vercel serverless safe)
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error("DB connection error:", err);
+    res.status(503).json({ success: false, message: "Database unavailable" });
+  }
+});
 
 // Serve uploaded files statically
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));

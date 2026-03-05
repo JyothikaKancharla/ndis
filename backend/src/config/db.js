@@ -19,7 +19,6 @@ const connectDB = async () => {
     cached.promise = mongoose.connect(uri, {
       serverSelectionTimeoutMS: 8000,
       socketTimeoutMS: 45000,
-      bufferCommands: false,
     }).then((m) => {
       console.log("✅ MongoDB connected");
       return m;
