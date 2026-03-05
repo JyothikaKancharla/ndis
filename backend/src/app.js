@@ -2,7 +2,11 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const connectDB = require("./config/db");
 const app = express();
+
+// Connect to MongoDB (once per cold start)
+connectDB();
 
 // Middleware
 app.use(cors());
