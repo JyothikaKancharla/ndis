@@ -24,8 +24,8 @@ async function createAssignment(req, res) {
     const wStart = new Date(weekStartDate);
     const wEnd = new Date(weekEndDate);
 
-    // timing conflict: same staff overlapping weeks and overlapping times
-    const existing = await Assignment.find({ staffId: new mongoose.Types.ObjectId(staffId) });
+    // timing conflict: same staff overlapping weeks and overlapping times (only active assignments)
+    const existing = await Assignment.find({ staffId: new mongoose.Types.ObjectId(staffId), isActive: true });
     for (const ex of existing) {
       if (weeksOverlap(wStart, wEnd, ex.weekStartDate, ex.weekEndDate)) {
         const exStart = parseTimeToMinutes(ex.startTime);
@@ -35,11 +35,11 @@ async function createAssignment(req, res) {
       }
     }
 
-    // compute initial status
+    // compute initial status (using correct schema enum values)
     const now = new Date();
-    let status = "assigned";
-    if (now >= wStart && now <= wEnd) status = "active";
-    if (now > wEnd) status = "completed";
+    let status = "Pending";
+    if (now >= wStart && now <= wEnd) status = "Current";
+    if (now > wEnd) status = "Previous";
 
     const assignment = new Assignment({
       staffId,
@@ -104,11 +104,11 @@ async function updateAssignment(req, res) {
       endTime
     });
 
-    // recompute status
+    // recompute status (using correct schema enum values)
     const now = new Date();
-    if (now > assignment.weekEndDate) assignment.status = "completed";
-    else if (now >= assignment.weekStartDate && now <= assignment.weekEndDate) assignment.status = "active";
-    else assignment.status = "assigned";
+    if (now > assignment.weekEndDate) assignment.status = "Previous";
+    else if (now >= assignment.weekStartDate && now <= assignment.weekEndDate) assignment.status = "Current";
+    else assignment.status = "Pending";
 
     await assignment.save();
 
@@ -153,13 +153,25 @@ async function getSupervisorAssignments(req, res) {
 
 async function updateStatuses() {
   try {
-    const now = new Date();
-    const assignedToActive = await Assignment.updateMany(
-      { weekStartDate: { $lte: now }, weekEndDate: { $gte: now }, status: { $ne: "active" } },
-      { $set: { status: "active" } }
-    );
-    const toCompleted = await Assignment.updateMany({ weekEndDate: { $lt: now }, status: { $ne: "completed" } }, { $set: { status: "completed" } });
-    return { assignedToActive, toCompleted };
+    const { calculateDynamicStatus } = require('../utils/assignmentStatus');
+    const activeAssignments = await Assignment.find({ isActive: true });
+
+    let updated = 0;
+    for (const assignment of activeAssignments) {
+      const computed = calculateDynamicStatus(
+        assignment.startDate, assignment.endDate, assignment.shift
+      );
+      const newStatus = computed.status; // 'Current', 'Pending', or 'Previous'
+      const shouldBeActive = newStatus !== 'Previous';
+
+      if (assignment.status !== newStatus || assignment.isActive !== shouldBeActive) {
+        assignment.status = newStatus;
+        assignment.isActive = shouldBeActive;
+        await assignment.save();
+        updated++;
+      }
+    }
+    return { updated };
   } catch (err) {
     console.error("Status updater error", err);
   }

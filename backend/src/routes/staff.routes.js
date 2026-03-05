@@ -1,43 +1,66 @@
-const router = require("express").Router();
-const auth = require("../middleware/auth.middleware");
-const { getNoteById } = require("../controllers/staff.controller");
-// Get a note by its ID (for staff)
-router.get("/notes/:noteId", auth(["staff"]), getNoteById);
-const {
-  getDashboard,
-  getStaffById,
-  getClientsByStaffId,
-  getShiftsByStaffId,
-  updateProfile,
-  getNotesByClient,
-  createNoteForClient,
-  editNote,
-  getShiftsOverviewForStaff
-} = require("../controllers/staff.controller");
+const express = require('express');
+const router = express.Router();
+const staffController = require('../controllers/staff.controller');
+const { authenticate, authorize } = require('../middleware/auth.middleware');
+const validateShift = require('../middleware/validateShift');
+const validateActiveShift = require('../middleware/validateActiveShift');
+const upload = require('../middleware/upload');
 
-// Shifts overview for staff dashboard UI
-router.get("/:id/shifts/overview", auth(), getShiftsOverviewForStaff);
+/**
+ * Dashboard
+ */
+router.get('/dashboard', authenticate, authorize('staff', 'supervisor', 'admin'), staffController.getDashboard);
+router.get('/:staffId/shifts/overview', authenticate, authorize('staff', 'supervisor', 'admin'), staffController.getShiftsOverview);
 
-// Dashboard for authenticated user
-router.get("/dashboard", auth(), getDashboard);
+/**
+ * Notes Management
+ */
+router.get('/notes', authenticate, authorize('staff', 'supervisor', 'admin'), staffController.getStaffNotes);
+router.post('/notes', authenticate, authorize('staff', 'supervisor', 'admin'), validateShift, staffController.createNote);
+router.put('/notes/:noteId', authenticate, authorize('staff', 'supervisor', 'admin'), validateShift, staffController.updateNote);
+router.put('/notes/:noteId/lock', authenticate, authorize('staff', 'supervisor', 'admin'), staffController.lockNote);
 
-// Notes APIs
-router.get("/clients/:clientId/notes", auth(["staff"]), getNotesByClient);
-router.post("/clients/:clientId/notes", auth(["staff"]), createNoteForClient);
-router.put("/notes/:noteId", auth(["staff"]), editNote);
-// Finalize note (set to Pending Review)
-const { finalizeNote } = require("../controllers/staff.controller");
-router.put("/notes/:noteId/finalize", auth(["staff"]), finalizeNote);
+/**
+ * Clients - Notes per client
+ */
+router.get('/clients/:clientId/notes', authenticate, authorize('staff', 'supervisor', 'admin'), staffController.getClientNotes);
+router.post('/clients/:clientId/notes', authenticate, authorize('staff', 'supervisor', 'admin'), validateActiveShift, staffController.createClientNote);
+router.post('/clients/:clientId/notes/confirm-review', authenticate, authorize('staff', 'supervisor', 'admin'), staffController.confirmReviewNotes);
+router.post('/clients/:clientId/notes/lock-and-send', authenticate, authorize('staff', 'supervisor', 'admin'), staffController.lockAndSendNotes);
+router.put('/clients/:clientId/notes/:noteId', authenticate, authorize('staff', 'supervisor', 'admin'), staffController.updateNote);
+router.post('/clients/:clientId/notes/:noteId/mark-consolidated', authenticate, authorize('staff', 'supervisor', 'admin'), staffController.markNoteAsConsolidated);
+router.post('/clients/:clientId/notes/:noteId/unlock', authenticate, authorize('supervisor', 'admin'), staffController.unlockNote);
+router.delete('/notes/:noteId', authenticate, authorize('staff', 'supervisor', 'admin'), staffController.deleteNote);
 
+/**
+ * File Uploads
+ */
+router.post('/clients/:clientId/files', authenticate, authorize('staff', 'supervisor', 'admin'), validateActiveShift, upload.array('files', 5), staffController.uploadFiles);
+router.get('/clients/:clientId/files', authenticate, authorize('staff', 'supervisor', 'admin'), staffController.getClientFiles);
+router.delete('/clients/:clientId/files/:fileId', authenticate, authorize('staff', 'supervisor', 'admin'), staffController.deleteFile);
 
-// Staff resource endpoints
-router.get("/:id", auth(), getStaffById);
-router.get("/:id/clients", auth(), getClientsByStaffId);
-router.get("/:id/shifts", auth(), getShiftsByStaffId);
-router.put("/:id/profile", auth(), updateProfile);
+/**
+ * Clients
+ */
+router.get('/clients', authenticate, authorize('staff', 'supervisor', 'admin'), staffController.getAssignedClients);
+router.get('/clients/:clientId/assignment', authenticate, authorize('staff', 'supervisor', 'admin'), staffController.getClientAssignment);
+router.put('/clients/:clientId/odometer', authenticate, authorize('staff', 'supervisor', 'admin'), staffController.updateOdometer);
 
-// Get a single assigned client by clientId (for staff)
-const { getAssignedClientById } = require("../controllers/staff.controller");
-router.get("/clients/:clientId", auth(["staff"]), getAssignedClientById);
+/**
+ * Assignments
+ */
+router.get('/assignments', authenticate, authorize('staff', 'supervisor', 'admin'), staffController.getAssignments);
+
+/**
+ * Travel/Trips
+ */
+router.get('/trips', authenticate, authorize('staff', 'supervisor', 'admin'), staffController.getTrips);
+router.post('/trips', authenticate, authorize('staff', 'supervisor', 'admin'), staffController.createTrip);
+
+/**
+ * Appointments
+ */
+router.get('/appointments', authenticate, authorize('staff'), staffController.getMyAppointments);
+router.put('/appointments/:id/complete', authenticate, authorize('staff'), staffController.completeAppointment);
 
 module.exports = router;
