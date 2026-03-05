@@ -49,7 +49,7 @@ export const RecordingProvider = ({ children }) => {
         if (event.results[i].isFinal) {
           finalTranscript += transcript + ' ';
         } else {
-          interimTranscript += transcript;
+          interimTranscript += transcript; // eslint-disable-line no-unused-vars
         }
       }
 

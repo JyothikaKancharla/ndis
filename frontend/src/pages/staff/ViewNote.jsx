@@ -1,19 +1,21 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FileText, Mic, ClipboardList, Calendar, Clock, Lock, CheckCircle, PenLine, Paperclip } from 'lucide-react';
+import { FileText, Mic, ClipboardList, Calendar, Clock, Lock, CheckCircle, PenLine, Paperclip, TrendingUp } from 'lucide-react';
 import api from '../../api/api';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import NoteAnalysisPanel from '../../components/NoteAnalysisPanel';
 import styles from './ViewNote.module.css';
 
 export default function ViewNote() {
   const { clientId, noteId } = useParams();
-  const navigate = useNavigate();
   const location = useLocation();
   const isSupervisor = location.pathname.startsWith('/supervisor');
   const [note, setNote] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [analysis, setAnalysis] = useState(null);
+  const [analyzing, setAnalyzing] = useState(false);
 
   useEffect(() => {
     const fetchNote = async () => {
@@ -76,6 +78,42 @@ export default function ViewNote() {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  // Clinical Analysis Functions
+  const handleAnalyze = async () => {
+    setAnalyzing(true);
+    try {
+      const res = await api.post(`/api/notes/${noteId}/analyze`);
+      setAnalysis(res.data.data);
+    } catch (err) {
+      console.error('Analysis failed:', err);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const handleDownloadReport = async () => {
+    try {
+      const baseURL = api.defaults.baseURL || 'http://localhost:5000';
+      const response = await fetch(`${baseURL}/api/notes/${noteId}/analysis-report`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      });
+
+      if (!response.ok) throw new Error('Download failed');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `clinical-analysis-${noteId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Download failed:', err);
+    }
   };
 
   if (error || !note) {
@@ -160,16 +198,56 @@ export default function ViewNote() {
                       {entry.noteType === 'voice' ? 'Voice' : entry.noteType === 'file' ? 'File' : 'Text'}
                     </span>
                   </div>
-                  <div className={styles.entryBody}>
-                    {entry.content}
-                  </div>
+                  {/* Only show text content if it's not a file upload placeholder */}
+                  {!entry.content.startsWith('File upload:') && !entry.content.includes('image uploaded') ? (
+                    <div className={styles.entryBody}>
+                      {entry.content}
+                    </div>
+                  ) : null}
+
+                  {/* Display attachments with images */}
                   {entry.attachments && entry.attachments.length > 0 && (
                     <div className={styles.entryAttachments}>
-                      {entry.attachments.map((att, i) => (
-                        <span key={att._id || i} className={styles.entryAttachmentChip}>
-                          <Paperclip size={12} /> {att.originalName}
-                        </span>
-                      ))}
+                      {entry.attachments.map((att, i) => {
+                        const isImage = att.mimetype && att.mimetype.startsWith('image/');
+                        const fileUrl = `http://localhost:5000/${att.path}`;
+
+                        return isImage ? (
+                          <div key={att._id || i} style={{
+                            marginBottom: '12px',
+                            borderRadius: '8px',
+                            overflow: 'hidden',
+                            border: '2px solid #e5e7eb',
+                            maxWidth: '300px'
+                          }}>
+                            <img
+                              src={fileUrl}
+                              alt={att.originalName}
+                              style={{
+                                width: '100%',
+                                height: 'auto',
+                                maxHeight: '300px',
+                                objectFit: 'contain',
+                                display: 'block',
+                                background: '#f9fafb'
+                              }}
+                            />
+                            <div style={{
+                              padding: '8px',
+                              background: '#f9fafb',
+                              fontSize: '12px',
+                              color: '#666',
+                              textAlign: 'center'
+                            }}>
+                              {att.originalName}
+                            </div>
+                          </div>
+                        ) : (
+                          <span key={att._id || i} className={styles.entryAttachmentChip}>
+                            <Paperclip size={12} /> {att.originalName}
+                          </span>
+                        );
+                      })}
                     </div>
                   )}
                   {index < note.entries.length - 1 && <hr className={styles.entrySeparator} />}
@@ -202,8 +280,26 @@ export default function ViewNote() {
         </div>
 
         {/* Document Footer */}
-        <div className={styles.documentFooter}></div>
+        <div className={styles.documentFooter}>
+          <button
+            onClick={handleAnalyze}
+            disabled={analyzing}
+            className={styles.analyzeBtn}
+          >
+            <TrendingUp size={16} />
+            {analyzing ? 'Analyzing...' : 'Analyze Note'}
+          </button>
+        </div>
       </motion.div>
+
+      {/* Analysis Results Panel */}
+      {analysis && (
+        <NoteAnalysisPanel
+          analysis={analysis}
+          noteId={noteId}
+          onDownload={handleDownloadReport}
+        />
+      )}
     </DashboardLayout>
   );
 }
