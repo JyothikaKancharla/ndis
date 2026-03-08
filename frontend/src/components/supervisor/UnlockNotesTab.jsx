@@ -282,15 +282,35 @@ const UnlockNotesTab = () => {
                       </span>
                     )}
                   </div>
-                  <p className={styles.contentText}>
-                    {note.entries && note.entries.length > 0
-                      ? (note.entries[0].content.length > 200
-                          ? note.entries[0].content.substring(0, 200) + '...'
-                          : note.entries[0].content)
-                      : (note.content.length > 200
-                          ? note.content.substring(0, 200) + '...'
-                          : note.content)}
-                  </p>
+                  {/* Show images if attachments exist, otherwise show text */}
+                  {note.attachments && note.attachments.length > 0 && note.attachments.some(att => att.mimetype && att.mimetype.startsWith('image/')) ? (
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                      {note.attachments.filter(att => att.mimetype && att.mimetype.startsWith('image/')).slice(0, 3).map((att, i) => (
+                        <img
+                          key={i}
+                          src={`http://localhost:5000/${att.path}`}
+                          alt={att.originalName}
+                          style={{
+                            width: '100px',
+                            height: '100px',
+                            objectFit: 'cover',
+                            borderRadius: '8px',
+                            border: '2px solid #e5e7eb'
+                          }}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className={styles.contentText}>
+                      {note.entries && note.entries.length > 0
+                        ? (note.entries[0].content.length > 200
+                            ? note.entries[0].content.substring(0, 200) + '...'
+                            : note.entries[0].content)
+                        : (note.content.length > 200
+                            ? note.content.substring(0, 200) + '...'
+                            : note.content)}
+                    </p>
+                  )}
                 </div>
 
                 {/* Lock/Unlock Info */}

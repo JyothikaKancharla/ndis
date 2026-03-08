@@ -63,7 +63,11 @@ export const RecordingProvider = ({ children }) => {
 
     recognition.onerror = (event) => {
       console.error('Speech recognition error:', event.error);
-      if (event.error !== 'no-speech') {
+      if (event.error === 'network' && isListeningRef.current) {
+        setTimeout(() => {
+          try { recognition.start(); } catch (_) {}
+        }, 1000);
+      } else if (event.error !== 'no-speech') {
         setError(`Transcription error: ${event.error}`);
       }
     };

@@ -8,6 +8,7 @@
  * 
  * Returns: { status: 'Current' | 'Pending' | 'Previous', badge: string, color: object }
  */
+
 export const getAssignmentDateStatus = (assignmentDate, shiftTime) => {
   if (!assignmentDate || !shiftTime) {
     return { status: 'Unknown', badge: '❓ UNKNOWN', color: { bg: '#f3f4f6', border: '#9ca3af', text: '#6b7280' } };
@@ -213,9 +214,9 @@ export const formatDateForDisplay = (date) => {
 
   return {
     relative,
-    short: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    full: d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-    weekday: d.toLocaleDateString('en-US', { weekday: 'short' }),
+    short: d.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }),
+    full: d.toLocaleDateString('en-AU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+    weekday: d.toLocaleDateString('en-AU', { weekday: 'short' }),
     iso: d.toISOString().split('T')[0]
   };
 };

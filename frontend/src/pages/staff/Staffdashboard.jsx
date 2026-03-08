@@ -231,7 +231,7 @@ export default function Staffdashboard() {
 
   return (
     <DashboardLayout
-      title={`Welcome back, ${dashboard?.staffName || user?.name || 'User'}`}
+      title={`Welcome back, ${user?.name || dashboard?.staffName || 'User'}`}
       subtitle="Here's an overview of your work today"
       loading={loading}
       error={error}

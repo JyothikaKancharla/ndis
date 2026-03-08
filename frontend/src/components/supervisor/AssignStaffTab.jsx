@@ -131,6 +131,22 @@ const AssignStaffTab = () => {
     setModalMode('create');
   };
 
+  const handleDeleteAssignment = async (assignment) => {
+    const confirmed = window.confirm(
+      `Remove assignment of "${assignment.clientId?.name}" from "${assignment.staffId?.name}"?\n\nThis cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await api.delete(`/api/supervisor/assignments/${assignment._id}`);
+      alert('Assignment removed successfully');
+      fetchData();
+    } catch (error) {
+      console.error('❌ Failed to delete assignment:', error);
+      alert(`Failed to remove assignment: ${error.response?.data?.error || error.response?.data?.message || error.message}`);
+    }
+  };
+
   const handleModalSubmit = async (data, mode, assignmentId) => {
     console.log('📝 Modal submit:', { data, mode, assignmentId });
 
@@ -154,7 +170,11 @@ const AssignStaffTab = () => {
         console.log('✅ Assignment created:', response.data);
 
         if (mode === 'reassign') {
-          alert('Client reassigned successfully. A new assignment has been created.');
+          // Delete the old assignment so it no longer appears in the list
+          if (assignmentId) {
+            await api.delete(`/api/supervisor/assignments/${assignmentId}`);
+          }
+          alert('Client reassigned successfully.');
         } else if (mode === 'new_shift') {
           alert('New shift created successfully.');
         } else {
@@ -436,6 +456,27 @@ const AssignStaffTab = () => {
                           }}
                         >
                           <span>➕</span> New Shift
+                        </button>
+
+                        {/* Remove Button - always available */}
+                        <button
+                          onClick={() => handleDeleteAssignment(assignment)}
+                          title="Remove this assignment"
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#fee2e2',
+                            color: '#b91c1c',
+                            border: '1px solid #fca5a5',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '13px',
+                            fontWeight: '500',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <span>🗑️</span> Remove
                         </button>
                       </div>
                     </div>

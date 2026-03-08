@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Clock, Calendar, Lock, Unlock, Edit3, Save, X,
-  User, MapPin, CheckCircle, AlertCircle, FileText
+  Clock, Calendar, Lock, Unlock, X,
+  User, MapPin, CheckCircle, AlertCircle, FileText, Download, Search
 } from 'lucide-react';
 import api from '../../api/api';
 import styles from './ShiftHistoryTab.module.css';
@@ -12,8 +12,7 @@ const ShiftHistoryTab = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [dateFilter, setDateFilter] = useState('month');
-  const [editingId, setEditingId] = useState(null);
-  const [editNotes, setEditNotes] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [unlockModal, setUnlockModal] = useState(null);
   const [unlockReason, setUnlockReason] = useState('');
   const [actionLoading, setActionLoading] = useState(null);
@@ -55,42 +54,48 @@ const ShiftHistoryTab = () => {
     }
   };
 
-  const handleLock = async (shiftId) => {
-    setActionLoading(shiftId);
-    try {
-      const res = await api.put(`/api/shift-history/${shiftId}/lock`);
-      setShifts(prev => prev.map(s => s._id === shiftId ? { ...s, ...res.data.data, isLocked: true } : s));
-      setEditingId(null);
-    } catch (err) {
-      console.error('Lock error:', err);
-    } finally {
-      setActionLoading(null);
-    }
-  };
 
-  const handleSaveNotes = async (shiftId) => {
-    setActionLoading(shiftId);
+  const handleDownloadExcel = async (period) => {
     try {
-      const res = await api.put(`/api/shift-history/${shiftId}/notes`, {
-        shiftNotes: editNotes
+      const baseURL = api.defaults.baseURL || 'http://localhost:5000';
+      const params = new URLSearchParams({ period });
+
+      const response = await fetch(`${baseURL}/api/shift-history/export?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
       });
-      setShifts(prev => prev.map(s => s._id === shiftId ? { ...s, ...res.data.data } : s));
-      setEditingId(null);
+
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.statusText}`);
+      }
+
+      const blob = await response.blob();
+
+      // Verify the blob is valid
+      if (blob.size === 0) {
+        throw new Error('Downloaded file is empty');
+      }
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const periodLabel = period.charAt(0).toUpperCase() + period.slice(1);
+      link.download = `Shift_Report_${periodLabel}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      // Show success message (optional)
+      console.log('Excel report downloaded successfully');
     } catch (err) {
-      console.error('Save notes error:', err);
-    } finally {
-      setActionLoading(null);
+      console.error('Download error:', err);
+      setError(`Failed to download Excel report: ${err.message}`);
+      setTimeout(() => setError(''), 5000);
     }
-  };
-
-  const startEditing = (shift) => {
-    setEditingId(shift._id);
-    setEditNotes(shift.shiftNotes || '');
-  };
-
-  const cancelEditing = () => {
-    setEditingId(null);
-    setEditNotes('');
   };
 
   const formatDate = (dateStr) => {
@@ -106,11 +111,22 @@ const ShiftHistoryTab = () => {
   };
 
   const filterTabs = [
-    { key: 'week', label: 'Last Week' },
-    { key: 'month', label: 'Last Month' },
-    { key: '3months', label: 'Last 3 Months' },
-    { key: 'all', label: 'All Time' }
+    { key: 'today', label: 'Today' },
+    { key: 'week', label: 'This Week' },
+    { key: 'month', label: 'This Month' },
+    { key: 'year', label: 'This Year' }
   ];
+
+  // Filter shifts based on search query
+  const filteredShifts = shifts.filter(shift => {
+    if (!searchQuery.trim()) return true;
+
+    const query = searchQuery.toLowerCase();
+    const clientName = shift.clientId?.name?.toLowerCase() || '';
+    const staffName = shift.staffId?.name?.toLowerCase() || '';
+
+    return clientName.includes(query) || staffName.includes(query);
+  });
 
   if (loading) {
     return (
@@ -132,36 +148,98 @@ const ShiftHistoryTab = () => {
 
       {/* Filter Bar */}
       <div className={styles.filterSection}>
-        <div className={styles.filterTabs}>
-          {filterTabs.map(tab => (
-            <button
-              key={tab.key}
-              className={`${styles.filterTab} ${dateFilter === tab.key ? styles.active : ''}`}
-              onClick={() => setDateFilter(tab.key)}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+          <div className={styles.filterTabs}>
+            {filterTabs.map(tab => (
+              <button
+                key={tab.key}
+                className={`${styles.filterTab} ${dateFilter === tab.key ? styles.active : ''}`}
+                onClick={() => setDateFilter(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Search Bar */}
+          <div className={styles.searchContainer}>
+            <Search size={16} className={styles.searchIcon} />
+            <input
+              type="text"
+              placeholder="Search by client or staff name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={styles.searchInput}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className={styles.clearSearch}
+                title="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
         </div>
-        <div className={styles.resultCount}>
-          {shifts.length} completed shift{shifts.length !== 1 ? 's' : ''}
+
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div className={styles.resultCount}>
+            {filteredShifts.length} of {shifts.length} shift{shifts.length !== 1 ? 's' : ''}
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => handleDownloadExcel('today')}
+              className={styles.downloadBtn}
+              title="Download Today's Report"
+            >
+              <Download size={16} />
+              <span>Today</span>
+            </button>
+            <button
+              onClick={() => handleDownloadExcel('week')}
+              className={styles.downloadBtn}
+              title="Download Weekly Report"
+            >
+              <Download size={16} />
+              <span>Week</span>
+            </button>
+            <button
+              onClick={() => handleDownloadExcel('month')}
+              className={styles.downloadBtn}
+              title="Download Monthly Report"
+            >
+              <Download size={16} />
+              <span>Month</span>
+            </button>
+            <button
+              onClick={() => handleDownloadExcel('year')}
+              className={styles.downloadBtn}
+              title="Download Yearly Report"
+            >
+              <Download size={16} />
+              <span>Year</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Shifts Grid */}
-      {shifts.length === 0 ? (
+      {filteredShifts.length === 0 ? (
         <div className={styles.emptyState}>
           <div className={styles.emptyIcon}>
             <Clock size={40} />
           </div>
-          <h3 className={styles.emptyTitle}>No completed shifts found</h3>
+          <h3 className={styles.emptyTitle}>
+            {searchQuery ? 'No shifts match your search' : 'No completed shifts found'}
+          </h3>
           <p className={styles.emptyDescription}>
-            Completed shift records will appear here.
+            {searchQuery ? 'Try a different search term' : 'Completed shift records will appear here.'}
           </p>
         </div>
       ) : (
         <div className={styles.shiftsGrid}>
-          {shifts.map((shift, index) => (
+          {filteredShifts.map((shift, index) => (
             <motion.div
               key={shift._id}
               className={styles.shiftCard}
@@ -226,80 +304,21 @@ const ShiftHistoryTab = () => {
                   </div>
                 )}
 
-                {/* Shift Notes */}
-                <div className={styles.notesSection}>
-                  <div className={styles.notesHeader}>
-                    <FileText size={14} />
-                    <span>Shift Notes</span>
-                  </div>
-                  {editingId === shift._id ? (
-                    <div className={styles.editSection}>
-                      <textarea
-                        className={styles.notesTextarea}
-                        value={editNotes}
-                        onChange={(e) => setEditNotes(e.target.value)}
-                        placeholder="Enter shift notes..."
-                        rows={4}
-                      />
-                      <div className={styles.editActions}>
-                        <button
-                          className={styles.saveBtn}
-                          onClick={() => handleSaveNotes(shift._id)}
-                          disabled={actionLoading === shift._id}
-                        >
-                          <Save size={14} />
-                          Save
-                        </button>
-                        <button
-                          className={styles.cancelEditBtn}
-                          onClick={cancelEditing}
-                        >
-                          <X size={14} />
-                          Cancel
-                        </button>
-                      </div>
+                {/* Shift Notes - Only show if notes exist */}
+                {shift.shiftNotes && shift.shiftNotes.trim() && (
+                  <div className={styles.notesSection}>
+                    <div className={styles.notesHeader}>
+                      <FileText size={14} />
+                      <span>Shift Notes</span>
                     </div>
-                  ) : (
                     <p className={styles.notesContent}>
-                      {shift.shiftNotes || 'No notes recorded.'}
+                      {shift.shiftNotes}
                     </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Card Footer */}
-              <div className={styles.shiftFooter}>
-                {shift.isLocked ? (
-                  <button
-                    className={styles.unlockBtn}
-                    onClick={() => { setUnlockModal(shift._id); setUnlockReason(''); }}
-                    disabled={actionLoading === shift._id}
-                  >
-                    <Unlock size={14} />
-                    Unlock Record
-                  </button>
-                ) : (
-                  <div className={styles.footerActions}>
-                    {editingId !== shift._id && (
-                      <button
-                        className={styles.editBtn}
-                        onClick={() => startEditing(shift)}
-                      >
-                        <Edit3 size={14} />
-                        Edit Notes
-                      </button>
-                    )}
-                    <button
-                      className={styles.lockBtn}
-                      onClick={() => handleLock(shift._id)}
-                      disabled={actionLoading === shift._id}
-                    >
-                      <Lock size={14} />
-                      Re-Lock
-                    </button>
                   </div>
                 )}
               </div>
+
+              {/* Card Footer - Removed unlock/lock buttons as per requirement */}
             </motion.div>
           ))}
         </div>

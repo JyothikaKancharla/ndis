@@ -1,39 +1,36 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
-const ClientSchema = new mongoose.Schema(
-  {
-    name: { type: String, required: true },
-
-    priority: {
-      type: String,
-      enum: ["High", "Medium", "Normal", "Other"],
-      default: "Normal",
-    },
-
-    dob: String,
-    gender: String,
-    phone: String,
-    email: String,
-    address: String,
-    carePlan: String,
-
-    careLevel: {
-      type: String,
-      enum: ["Low", "Medium", "High"], // restrict values
-      default: "Low" // default value
-    },
-
-    medicalNotes: String,
-    status: { type: String, default: "Active" },
-
-    emergencyContact: {
-      name: String,
-      phone: String,
-    },
-
-    assignedStaff: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+const clientSchema = new mongoose.Schema({
+  name: { 
+    type: String, 
+    required: true 
   },
-  { timestamps: true }
-);
+  ndisNumber: { 
+    type: String, 
+    unique: true,
+    sparse: true
+  },
+  dateOfBirth: Date,
+  room: String,
+  careLevel: { 
+    type: String, 
+    enum: ['High', 'Medium', 'Low'], 
+    default: 'Medium' 
+  },
+  address: String,
+  emergencyContact: {
+    name: String,
+    phone: String,
+    relationship: String
+  },
+  isActive: { 
+    type: Boolean, 
+    default: true 
+  },
+  createdAt: { 
+    type: Date, 
+    default: Date.now 
+  }
+}, { timestamps: true });
 
-module.exports = mongoose.model("Client", ClientSchema);
+module.exports = mongoose.model('Client', clientSchema);

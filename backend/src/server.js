@@ -34,7 +34,7 @@ setInterval(async () => {
     // after updating DB statuses, fetch active assignments and emit to relevant staff
     try {
       const Assignment = require("./models/Assignment");
-      const active = await Assignment.find({ status: "active" });
+      const active = await Assignment.find({ status: "Current", isActive: true });
       const ioInstance = app.get("io");
       active.forEach((a) => {
         ioInstance && ioInstance.to(`staff_${a.staffId}`).emit("assignmentStatus", a);

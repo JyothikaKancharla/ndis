@@ -68,7 +68,13 @@ const ViewNotesTab = () => {
   return (
     <div style={{ padding: '20px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>View All Notes</h2>
+        <div>
+          <h2 style={{ margin: '0 0 4px 0' }}>View All Notes</h2>
+          <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>
+            Showing {notes.length} note{notes.length !== 1 ? 's' : ''}
+            {filters.client !== 'all' && ` for ${clients.find(c => c._id === filters.client)?.name || 'selected client'}`}
+          </p>
+        </div>
         <button
           onClick={() => {
             console.log('🔄 Resetting filters to defaults');
@@ -108,10 +114,26 @@ const ViewNotesTab = () => {
           <option value="rejected">Rejected</option>
         </select>
 
-        <select 
-          value={filters.client} 
-          onChange={(e) => setFilters({...filters, client: e.target.value})}
-          style={{ padding: '8px', borderRadius: '6px', border: '1px solid #ddd' }}
+        <select
+          value={filters.client}
+          onChange={(e) => {
+            console.log('🔍 Client filter changed to:', e.target.value);
+            // When selecting a specific client, automatically show all their notes (all statuses)
+            const newFilters = {...filters, client: e.target.value};
+            if (e.target.value !== 'all') {
+              newFilters.status = 'all'; // Show all statuses for this client
+              console.log('✅ Auto-set status to "all" for client-specific view');
+            }
+            setFilters(newFilters);
+          }}
+          style={{
+            padding: '8px',
+            borderRadius: '6px',
+            border: '1px solid #ddd',
+            fontWeight: filters.client !== 'all' ? '700' : '400',
+            background: filters.client !== 'all' ? '#f8f4f9' : '#fff',
+            borderColor: filters.client !== 'all' ? '#7e3285' : '#ddd'
+          }}
         >
           <option value="all">All Clients</option>
           {clients.map(client => (
@@ -177,11 +199,31 @@ const ViewNotesTab = () => {
                   <p style={{ margin: '0 0 8px 0', fontSize: '12px', color: '#666' }}>
                     {note.category || 'General'} • <strong>{note.shift || 'Unknown Shift'}</strong> • {formattedDate}
                   </p>
-                  <p style={{ margin: '0', fontSize: '14px', lineHeight: '1.5' }}>
-                    {note.entries && note.entries.length > 0
-                      ? note.entries[0].content.substring(0, 300) + (note.entries[0].content.length > 300 ? '...' : '')
-                      : note.content}
-                  </p>
+                  {/* Show images if attachments exist, otherwise show text */}
+                  {note.attachments && note.attachments.length > 0 && note.attachments.some(att => att.mimetype && att.mimetype.startsWith('image/')) ? (
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', margin: '0 0 8px 0' }}>
+                      {note.attachments.filter(att => att.mimetype && att.mimetype.startsWith('image/')).slice(0, 3).map((att, i) => (
+                        <img
+                          key={i}
+                          src={`http://localhost:5000/${att.path}`}
+                          alt={att.originalName}
+                          style={{
+                            width: '100px',
+                            height: '100px',
+                            objectFit: 'cover',
+                            borderRadius: '8px',
+                            border: '2px solid #e5e7eb'
+                          }}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ margin: '0', fontSize: '14px', lineHeight: '1.5' }}>
+                      {note.entries && note.entries.length > 0
+                        ? note.entries[0].content.substring(0, 300) + (note.entries[0].content.length > 300 ? '...' : '')
+                        : note.content}
+                    </p>
+                  )}
                 </div>
                 <span style={{
                   padding: '4px 12px',

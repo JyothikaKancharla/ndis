@@ -42,20 +42,6 @@ const VerifyNotesTab = () => {
     }
   };
 
-  const handleReject = async (noteId) => {
-    const reason = prompt('Enter rejection reason:');
-    if (reason) {
-      try {
-        await api.put(`/api/supervisor/notes/${noteId}/verify`, { 
-          status: 'Rejected', 
-          rejectionReason: reason 
-        });
-        fetchPendingNotes();
-      } catch (error) {
-        console.error('Failed to reject note:', error);
-      }
-    }
-  };
 
   if (loading) {
     return <div style={{ padding: '20px', textAlign: 'center' }}>Loading pending notes...</div>;
@@ -90,11 +76,47 @@ const VerifyNotesTab = () => {
                     </span>
                   )}
                 </p>
-                <p style={{ margin: '0 0 12px 0', fontSize: '14px', lineHeight: '1.6', color: '#333' }}>
-                  {note.entries && note.entries.length > 0
-                    ? note.entries[0].content.substring(0, 200) + (note.entries[0].content.length > 200 ? '...' : '')
-                    : note.content}
-                </p>
+                {/* Show images if attachments exist */}
+                {note.attachments && note.attachments.length > 0 && note.attachments.some(att => att.mimetype && att.mimetype.startsWith('image/')) ? (
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                    {note.attachments.filter(att => att.mimetype && att.mimetype.startsWith('image/')).slice(0, 2).map((att, i) => (
+                      <img
+                        key={i}
+                        src={`http://localhost:5000/${att.path}`}
+                        alt={att.originalName}
+                        style={{
+                          width: '100px',
+                          height: '100px',
+                          objectFit: 'cover',
+                          borderRadius: '8px',
+                          border: '2px solid #e5e7eb'
+                        }}
+                      />
+                    ))}
+                    {note.attachments.filter(att => att.mimetype && att.mimetype.startsWith('image/')).length > 2 && (
+                      <div style={{
+                        width: '100px',
+                        height: '100px',
+                        borderRadius: '8px',
+                        background: '#f3f4f6',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '12px',
+                        color: '#666',
+                        fontWeight: '600'
+                      }}>
+                        +{note.attachments.filter(att => att.mimetype && att.mimetype.startsWith('image/')).length - 2} more
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p style={{ margin: '0 0 12px 0', fontSize: '14px', lineHeight: '1.6', color: '#333' }}>
+                    {note.entries && note.entries.length > 0
+                      ? note.entries[0].content.substring(0, 200) + (note.entries[0].content.length > 200 ? '...' : '')
+                      : note.content}
+                  </p>
+                )}
               </div>
 
               {/* Odometer / Travel Data */}
@@ -143,21 +165,6 @@ const VerifyNotesTab = () => {
                   }}
                 >
                   ✓ Approve
-                </button>
-                <button
-                  onClick={() => handleReject(note._id)}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#ef4444',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: '600',
-                    fontSize: '14px'
-                  }}
-                >
-                  ✗ Reject
                 </button>
                 {note.startOdometer !== null && note.startOdometer !== undefined && (
                   <button

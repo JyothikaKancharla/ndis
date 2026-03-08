@@ -34,3 +34,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# uploads
+backend/uploads/
+
+# node_modules (all subdirectories)
+**/node_modules

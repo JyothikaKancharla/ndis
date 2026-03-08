@@ -15,6 +15,8 @@ import Appointment from "./pages/staff/Appointment";
 import Incident from "./pages/staff/Incident";
 import Shifts from "./pages/staff/Shifts";
 import ShiftHistory from "./pages/staff/ShiftHistory";
+import StaffAppointments from "./pages/staff/StaffAppointments";
+import ClientAppointmentsView from "./pages/staff/ClientAppointmentsView";
 import SupervisorHome from "./pages/supervisor/Supervisordashboard";
 import GovernmentHome from "./pages/government/Governmentdashboard";
 import { AuthProvider } from "./context/AuthContext";
@@ -124,6 +126,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ShiftHistory />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/staff/appointments"
+              element={
+                <ProtectedRoute>
+                  <StaffAppointments />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/staff/clients/:clientId/view-appointments"
+              element={
+                <ProtectedRoute>
+                  <ClientAppointmentsView />
                 </ProtectedRoute>
               }
             />

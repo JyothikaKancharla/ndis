@@ -1,16 +1,34 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  role: { type: String, enum: ["staff", "supervisor", "government"], required: true },
-  assignedClients: [{ type: mongoose.Schema.Types.ObjectId, ref: "Client", maxItems: 3 }],
-  shiftPattern: { type: String },
-  startTime: { type: String },
-  endTime: { type: String },
-  assignmentStart: { type: Date },
-  daysPerWeek: { type: Number }
+  name: { 
+    type: String, 
+    required: true 
+  },
+  email: { 
+    type: String, 
+    required: true, 
+    unique: true,
+    lowercase: true
+  },
+  password: { 
+    type: String, 
+    required: true 
+  },
+  role: { 
+    type: String, 
+    enum: ['staff', 'supervisor', 'admin'], 
+    required: true 
+  },
+  phone: String,
+  isActive: { 
+    type: Boolean, 
+    default: true 
+  },
+  createdAt: { 
+    type: Date, 
+    default: Date.now 
+  }
 });
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.model('User', userSchema);

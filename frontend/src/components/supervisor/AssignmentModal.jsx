@@ -270,7 +270,7 @@ const AssignmentModal = ({
               <>
                 <strong>Reassigning:</strong> {getClientName()} (currently assigned to {getStaffName()})
                 <br />
-                <span style={{ fontSize: '13px' }}>This will create a new assignment. The previous assignment history will be preserved.</span>
+                <span style={{ fontSize: '13px' }}>Select a new staff member. The old assignment will be removed.</span>
               </>
             ) : (
               <>

@@ -13,9 +13,12 @@ import AssignStaffTab from '../../components/supervisor/AssignStaffTab';
 import UnlockNotesTab from '../../components/supervisor/UnlockNotesTab';
 import TravelLogTab from '../../components/supervisor/TravelLogTab';
 import ShiftHistoryTab from '../../components/supervisor/ShiftHistoryTab';
+import ClientsPage from './ClientsPage';
+import ClientDetailPage from './ClientDetailPage';
 import styles from './Supervisordashboard.module.css';
 
 const pageConfig = {
+  '/supervisor/clients': { title: 'View Clients', subtitle: 'All clients', component: 'clients' },
   '/supervisor/notes': { title: 'View Notes', subtitle: 'All staff notes', component: 'view-notes' },
   '/supervisor/verify-notes': { title: 'Verify Notes', subtitle: 'Approve pending notes', component: 'verify-notes' },
   '/supervisor/assign-staff': { title: 'Assign Staff', subtitle: 'Staff assignments', component: 'assign-staff' },
@@ -41,8 +44,14 @@ const formatTimeAgo = (timestamp) => {
 const Supervisordashboard = () => {
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Check for client detail page (dynamic route)
+  const pathParts = location.pathname.split('/');
+  const isClientDetailPage = pathParts[2] === 'clients' && pathParts.length === 4;
+  const clientIdFromPath = isClientDetailPage ? pathParts[3] : null;
+
   const currentPage = pageConfig[location.pathname] || null;
-  const isDashboard = !currentPage;
+  const isDashboard = !currentPage && !isClientDetailPage;
 
   const [stats, setStats] = useState({
     totalNotes: 0,
@@ -133,6 +142,15 @@ const Supervisordashboard = () => {
     return '';
   };
 
+  // Client detail page (dynamic route)
+  if (isClientDetailPage && clientIdFromPath) {
+    return (
+      <DashboardLayout title="" subtitle="">
+        <ClientDetailPage clientId={clientIdFromPath} />
+      </DashboardLayout>
+    );
+  }
+
   // Sub-pages: render only the page component with its own title
   if (currentPage) {
     return (
@@ -146,6 +164,7 @@ const Supervisordashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
         >
+          {currentPage.component === 'clients' && <ClientsPage />}
           {currentPage.component === 'view-notes' && <ViewNotesTab />}
           {currentPage.component === 'verify-notes' && <VerifyNotesTab />}
           {currentPage.component === 'assign-staff' && <AssignStaffTab />}

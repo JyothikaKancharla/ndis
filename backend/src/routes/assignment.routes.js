@@ -1,14 +1,14 @@
 const express = require("express");
 const router = express.Router();
-const auth = require("../middleware/auth.middleware");
+const { authenticate, authorize } = require("../middleware/auth.middleware");
 const controller = require("../controllers/assignment.controller");
 
 // Only supervisors can create/update
-router.post("/", auth(["supervisor"]), controller.createAssignment);
-router.put("/:id", auth(["supervisor"]), controller.updateAssignment);
+router.post("/", authenticate, authorize("supervisor"), controller.createAssignment);
+router.put("/:id", authenticate, authorize("supervisor"), controller.updateAssignment);
 
 // Staff can view their assignments (route guarded by auth to ensure the staffId matches the token for extra safety)
-router.get("/staff/:staffId", auth(["staff", "supervisor"]), async (req, res, next) => {
+router.get("/staff/:staffId", authenticate, authorize("staff", "supervisor"), async (req, res, next) => {
   // allow supervisors to query any staff; staff can query only their own id
   if (req.user.role === "staff" && req.user.id !== req.params.staffId) {
     return res.status(403).json({ message: "Forbidden" });
@@ -17,6 +17,6 @@ router.get("/staff/:staffId", auth(["staff", "supervisor"]), async (req, res, ne
 });
 
 // Supervisor view
-router.get("/supervisor/:supervisorId", auth(["supervisor"]), controller.getSupervisorAssignments);
+router.get("/supervisor/:supervisorId", authenticate, authorize("supervisor"), controller.getSupervisorAssignments);
 
 module.exports = router;

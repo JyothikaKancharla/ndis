@@ -16,7 +16,8 @@ import {
   ClipboardList,
   Clock,
   ChevronRight,
-  History
+  History,
+  Calendar
 } from 'lucide-react';
 import { AuthContext } from '../../context/AuthContext';
 import styles from './Sidebar.module.css';
@@ -48,6 +49,7 @@ const Sidebar = () => {
     if (role === 'supervisor') {
       return [
         { path: '/supervisor/dashboard', icon: LayoutDashboard, label: 'Dashboard', description: 'Overview & stats' },
+        { path: '/supervisor/clients', icon: Users, label: 'View Clients', description: 'All clients' },
         { path: '/supervisor/notes', icon: FileText, label: 'View Notes', description: 'All staff notes' },
         { path: '/supervisor/verify-notes', icon: CheckSquare, label: 'Verify Notes', description: 'Approve pending' },
         { path: '/supervisor/assign-staff', icon: UserPlus, label: 'Assign Staff', description: 'Staff assignments' },

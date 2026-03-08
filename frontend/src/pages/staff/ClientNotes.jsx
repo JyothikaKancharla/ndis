@@ -5,6 +5,7 @@ import { Mic, PenLine, ClipboardList, FileText, Lock, Unlock, Eye, Calendar, Upl
 import api from '../../api/api';
 import { AuthContext } from '../../context/AuthContext';
 import DashboardLayout from '../../components/layout/DashboardLayout';
+import IncidentConfirmationModal from '../../components/IncidentConfirmationModal';
 import { getAssignmentDateStatus, formatDateForDisplay } from '../../utils/shiftStatus';
 import styles from './ClientNotes.module.css';
 
@@ -20,6 +21,8 @@ export default function ClientNotes() {
   const [uploadFiles, setUploadFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [lockingSending, setLockingSending] = useState(false);
+  const [showIncidentModal, setShowIncidentModal] = useState(false);
+  const [incidentDetails, setIncidentDetails] = useState(null);
   const fileInputRef = useRef(null);
   const [assignment, setAssignment] = useState(null);
   const [shiftStatus, setShiftStatus] = useState(null);
@@ -149,18 +152,46 @@ export default function ClientNotes() {
     setUploading(false);
   };
 
-  const handleLockAndSend = async () => {
-    if (!window.confirm('Lock all consolidated notes and send to supervisor? This cannot be undone.')) return;
+  const handleLockAndSend = async (incidentConfirmed = false) => {
+    if (!incidentConfirmed && !window.confirm('Lock all consolidated notes and send to supervisor? This cannot be undone.')) return;
 
     setLockingSending(true);
     setError("");
+
     try {
-      await api.post(`/api/staff/clients/${clientId}/notes/lock-and-send`);
+      await api.post(`/api/staff/clients/${clientId}/notes/lock-and-send`, {
+        incidentConfirmed
+      });
       await fetchData(false);
+      setShowIncidentModal(false);
+      setLockingSending(false);
     } catch (err) {
+      console.log('Lock & Send Error:', err.response?.data);
+
+      // PRIORITY: Check if incident was detected
+      if (err.response?.data?.incident_detected === true) {
+        console.log('Incident detected - showing modal');
+        setIncidentDetails(err.response.data.incident_details);
+        setShowIncidentModal(true);
+        setLockingSending(false);
+        setError(""); // Clear any error message
+        return; // Exit early - don't show error
+      }
+
+      // Other errors
+      console.error('Lock & Send failed:', err);
       setError(err.response?.data?.message || 'Failed to lock and send notes');
+      setLockingSending(false);
     }
-    setLockingSending(false);
+  };
+
+  const handleConfirmNoIncident = async () => {
+    await handleLockAndSend(true); // Retry with incident confirmed
+  };
+
+  const handleAddIncident = () => {
+    setShowIncidentModal(false);
+    navigate(`/staff/clients/${clientId}/incident`);
   };
 
   const handleSaveOdometer = async () => {
@@ -380,17 +411,6 @@ export default function ClientNotes() {
           Upload Files
         </motion.button>
         <motion.button
-          className={`${styles.actionBtn} ${styles.appointmentBtn}`}
-          onClick={() => navigate(`/staff/clients/${clientId}/appointment`)}
-          disabled={!canCreateNotes}
-          title={!canCreateNotes ? getDisabledReason() : 'Log an appointment'}
-          whileHover={canCreateNotes ? { scale: 1.02 } : {}}
-          whileTap={canCreateNotes ? { scale: 0.98 } : {}}
-        >
-          <CalendarPlus size={20} />
-          Appointment
-        </motion.button>
-        <motion.button
           className={`${styles.actionBtn} ${styles.incidentBtn}`}
           onClick={() => navigate(`/staff/clients/${clientId}/incident`)}
           disabled={!canCreateNotes}
@@ -400,6 +420,16 @@ export default function ClientNotes() {
         >
           <AlertTriangle size={20} />
           Incident
+        </motion.button>
+        <motion.button
+          className={`${styles.actionBtn} ${styles.appointmentBtn}`}
+          onClick={() => navigate(`/staff/clients/${clientId}/view-appointments`)}
+          title="View appointments for this client"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <CalendarPlus size={20} />
+          Appointments
         </motion.button>
         <motion.button
           className={`${styles.actionBtn} ${styles.consolidationBtn}`}
@@ -464,11 +494,26 @@ export default function ClientNotes() {
                   <div className={styles.fileList}>
                     {uploadFiles.map((file, index) => (
                       <div key={index} className={styles.fileItem}>
-                        <div className={styles.fileInfo}>
-                          {getFileIcon(file.type)}
-                          <span className={styles.fileName}>{file.name}</span>
-                          <span className={styles.fileSize}>{formatFileSize(file.size)}</span>
-                        </div>
+                        {/* Show image preview for image files */}
+                        {file.type.startsWith('image/') ? (
+                          <div className={styles.imagePreview}>
+                            <img
+                              src={URL.createObjectURL(file)}
+                              alt={file.name}
+                              className={styles.previewImage}
+                            />
+                            <div className={styles.imageInfo}>
+                              <span className={styles.fileName}>{file.name}</span>
+                              <span className={styles.fileSize}>{formatFileSize(file.size)}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className={styles.fileInfo}>
+                            {getFileIcon(file.type)}
+                            <span className={styles.fileName}>{file.name}</span>
+                            <span className={styles.fileSize}>{formatFileSize(file.size)}</span>
+                          </div>
+                        )}
                         <button
                           className={styles.removeFile}
                           onClick={() => removeFile(index)}
@@ -533,9 +578,29 @@ export default function ClientNotes() {
                 <span className={styles.pendingNoteType}>
                   {note.noteType === 'voice' ? 'Voice' : note.noteType === 'file' ? 'File' : 'Text'}
                 </span>
-                <span className={styles.pendingNoteContent}>
-                  {note.content.substring(0, 100)}{note.content.length > 100 ? '...' : ''}
-                </span>
+
+                {/* Show images if it's a file note with image attachments */}
+                {note.noteType === 'file' && note.attachments && note.attachments.length > 0 ? (
+                  <div className={styles.pendingNoteImages}>
+                    {note.attachments.filter(att => att.mimetype && att.mimetype.startsWith('image/')).map((att, i) => {
+                      const fileUrl = `http://localhost:5000/${att.path}`;
+                      return (
+                        <div key={att._id || i} className={styles.pendingImageThumb}>
+                          <img src={fileUrl} alt={att.originalName} />
+                        </div>
+                      );
+                    })}
+                    {note.attachments.length > note.attachments.filter(att => att.mimetype && att.mimetype.startsWith('image/')).length && (
+                      <span className={styles.pendingNoteContent}>
+                        + {note.attachments.length - note.attachments.filter(att => att.mimetype && att.mimetype.startsWith('image/')).length} other file(s)
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <span className={styles.pendingNoteContent}>
+                    {note.content.substring(0, 100)}{note.content.length > 100 ? '...' : ''}
+                  </span>
+                )}
               </div>
             ))}
             {reviewNotes.length > 3 && (
@@ -557,7 +622,7 @@ export default function ClientNotes() {
             </h2>
             <motion.button
               className={styles.lockSendBtn}
-              onClick={handleLockAndSend}
+              onClick={() => handleLockAndSend(false)}
               disabled={lockingSending}
               whileHover={!lockingSending ? { scale: 1.02 } : {}}
               whileTap={!lockingSending ? { scale: 0.98 } : {}}
@@ -583,16 +648,30 @@ export default function ClientNotes() {
                     {note.noteType === 'voice' ? 'Voice' : note.noteType === 'file' ? 'File' : 'Text'}
                   </span>
                 </div>
-                <div className={styles.entryContent}>
-                  {note.content}
-                </div>
+                {/* Only show text content if it's not a file-type note or has meaningful content */}
+                {note.noteType !== 'file' || !note.content.startsWith('File upload:') ? (
+                  <div className={styles.entryContent}>
+                    {note.content}
+                  </div>
+                ) : null}
+
                 {note.attachments && note.attachments.length > 0 && (
                   <div className={styles.entryAttachments}>
-                    {note.attachments.map((att, i) => (
-                      <span key={att._id || i} className={styles.attachmentChip}>
-                        <Paperclip size={12} /> {att.originalName}
-                      </span>
-                    ))}
+                    {note.attachments.map((att, i) => {
+                      const isImage = att.mimetype && att.mimetype.startsWith('image/');
+                      const fileUrl = `http://localhost:5000/${att.path}`;
+
+                      return isImage ? (
+                        <div key={att._id || i} className={styles.attachmentImage}>
+                          <img src={fileUrl} alt={att.originalName} className={styles.uploadedImage} />
+                          <span className={styles.imageName}>{att.originalName}</span>
+                        </div>
+                      ) : (
+                        <span key={att._id || i} className={styles.attachmentChip}>
+                          <Paperclip size={12} /> {att.originalName}
+                        </span>
+                      );
+                    })}
                   </div>
                 )}
                 {index < consolidatedNotes.length - 1 && <hr className={styles.entrySeparator} />}
@@ -672,16 +751,30 @@ export default function ClientNotes() {
                           {entry.noteType === 'voice' ? 'Voice' : entry.noteType === 'file' ? 'File' : 'Text'}
                         </span>
                       </div>
-                      <div className={styles.entryContent}>
-                        {entry.content}
-                      </div>
+                      {/* Only show text content if it's not a file upload placeholder */}
+                      {!entry.content.startsWith('File upload:') && !entry.content.includes('image uploaded') ? (
+                        <div className={styles.entryContent}>
+                          {entry.content}
+                        </div>
+                      ) : null}
+
                       {entry.attachments && entry.attachments.length > 0 && (
                         <div className={styles.entryAttachments}>
-                          {entry.attachments.map((att, i) => (
-                            <span key={att._id || i} className={styles.attachmentChip}>
-                              <Paperclip size={12} /> {att.originalName}
-                            </span>
-                          ))}
+                          {entry.attachments.map((att, i) => {
+                            const isImage = att.mimetype && att.mimetype.startsWith('image/');
+                            const fileUrl = `http://localhost:5000/${att.path}`;
+
+                            return isImage ? (
+                              <div key={att._id || i} className={styles.attachmentImage}>
+                                <img src={fileUrl} alt={att.originalName} className={styles.uploadedImage} />
+                                <span className={styles.imageName}>{att.originalName}</span>
+                              </div>
+                            ) : (
+                              <span key={att._id || i} className={styles.attachmentChip}>
+                                <Paperclip size={12} /> {att.originalName}
+                              </span>
+                            );
+                          })}
                         </div>
                       )}
                       {index < note.entries.length - 1 && <hr className={styles.entrySeparator} />}
@@ -718,6 +811,16 @@ export default function ClientNotes() {
             </motion.div>
           ))}
         </>
+      )}
+
+      {/* Incident Confirmation Modal */}
+      {showIncidentModal && (
+        <IncidentConfirmationModal
+          incidentDetails={incidentDetails}
+          onAddIncident={handleAddIncident}
+          onConfirmNoIncident={handleConfirmNoIncident}
+          onCancel={() => setShowIncidentModal(false)}
+        />
       )}
     </DashboardLayout>
   );

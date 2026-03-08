@@ -203,52 +203,95 @@ export default function DailyConsolidationTimeline() {
                 <div className={styles.noteCard}>
                   {isEditing ? (
                     <>
-                      <textarea
-                        className={styles.editTextarea}
-                        value={editContents[note._id] || ''}
-                        onChange={(e) => setEditContents(prev => ({
-                          ...prev,
-                          [note._id]: e.target.value
-                        }))}
-                        autoFocus
-                      />
-                      <div className={styles.editActions}>
-                        <button
-                          className={styles.saveEditBtn}
-                          onClick={() => handleSaveEdit(note._id)}
-                          disabled={savingEdit}
-                        >
-                          <Save size={14} />
-                          {savingEdit ? 'Saving...' : 'Save'}
-                        </button>
-                        <button
-                          className={styles.cancelEditBtn}
-                          onClick={handleCancelEdit}
-                          disabled={savingEdit}
-                        >
-                          <X size={14} />
-                          Cancel
-                        </button>
-                      </div>
+                      {/* For file notes, don't allow text editing - only show message */}
+                      {note.noteType === 'file' ? (
+                        <div className={styles.fileEditMessage}>
+                          <AlertCircle size={20} />
+                          <p>File notes cannot be edited. Please delete and re-upload if needed.</p>
+                          <button
+                            className={styles.cancelEditBtn}
+                            onClick={handleCancelEdit}
+                          >
+                            <X size={14} />
+                            Close
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <textarea
+                            className={styles.editTextarea}
+                            value={editContents[note._id] || ''}
+                            onChange={(e) => setEditContents(prev => ({
+                              ...prev,
+                              [note._id]: e.target.value
+                            }))}
+                            autoFocus
+                          />
+                          <div className={styles.editActions}>
+                            <button
+                              className={styles.saveEditBtn}
+                              onClick={() => handleSaveEdit(note._id)}
+                              disabled={savingEdit}
+                            >
+                              <Save size={14} />
+                              {savingEdit ? 'Saving...' : 'Save'}
+                            </button>
+                            <button
+                              className={styles.cancelEditBtn}
+                              onClick={handleCancelEdit}
+                              disabled={savingEdit}
+                            >
+                              <X size={14} />
+                              Cancel
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </>
                   ) : (
                     <>
-                      <div className={styles.noteContent}>
-                        {note.content}
-                      </div>
+                      {/* Show images if file note with attachments, otherwise show content */}
+                      {note.noteType === 'file' && note.attachments && note.attachments.length > 0 ? (
+                        <div className={styles.attachmentsDisplay}>
+                          {note.attachments.map((att, i) => {
+                            const isImage = att.mimetype && att.mimetype.startsWith('image/');
+                            const fileUrl = `http://localhost:5000/${att.path}`;
+
+                            return isImage ? (
+                              <div key={att._id || i} className={styles.imageAttachment}>
+                                <img src={fileUrl} alt={att.originalName} className={styles.attachmentImage} />
+                                <span className={styles.attachmentName}>{att.originalName}</span>
+                              </div>
+                            ) : (
+                              <div key={att._id || i} className={styles.fileAttachment}>
+                                <Paperclip size={14} />
+                                <span>{att.originalName}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className={styles.noteContent}>
+                          {note.content}
+                        </div>
+                      )}
+
                       <div className={styles.noteMeta}>
                         <span className={styles.noteTypeBadge}>
                           {getNoteTypeIcon(note.noteType)}
                           {getNoteTypeLabel(note.noteType)}
                         </span>
                         <span>Created: {new Date(note.createdAt).toLocaleString()}</span>
-                        <button
-                          className={styles.editNoteBtn}
-                          onClick={() => handleStartEdit(note)}
-                        >
-                          <Edit3 size={14} />
-                          Edit
-                        </button>
+                        {/* Only show Edit button for text/voice notes, not file notes */}
+                        {note.noteType !== 'file' && (
+                          <button
+                            className={styles.editNoteBtn}
+                            onClick={() => handleStartEdit(note)}
+                          >
+                            <Edit3 size={14} />
+                            Edit
+                          </button>
+                        )}
                       </div>
                     </>
                   )}
