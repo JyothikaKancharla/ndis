@@ -1,9 +1,0 @@
-{
-  "short_name": "NexCare",
-  "name": "NexCare App",
-  "icons": [],
-  "start_url": ".",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#7e3285"
-}
