@@ -864,7 +864,7 @@ exports.getClientNotes = async (req, res) => {
 exports.createClientNote = async (req, res) => {
   try {
     const { clientId } = req.params;
-    const { content, noteType, locked, status } = req.body;
+    const { content, noteType, locked, status, category } = req.body;
 
     // Validate required fields
     if (!content || !content.trim()) {
@@ -903,7 +903,7 @@ exports.createClientNote = async (req, res) => {
       staffId: req.user.id,
       clientId: clientId,
       content: content.trim(),
-      category: 'General', // Default category
+      category: category || 'General',
       noteType: noteType || 'text',
       shiftDate: today,
       shift: shift,
