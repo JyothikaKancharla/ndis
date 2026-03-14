@@ -5,7 +5,6 @@ import { Mic, PenLine, ClipboardList, FileText, Lock, Unlock, Eye, Calendar, Upl
 import api from '../../api/api';
 import { AuthContext } from '../../context/AuthContext';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import IncidentConfirmationModal from '../../components/IncidentConfirmationModal';
 import { getAssignmentDateStatus, formatDateForDisplay } from '../../utils/shiftStatus';
 import styles from './ClientNotes.module.css';
 
@@ -21,8 +20,6 @@ export default function ClientNotes() {
   const [uploadFiles, setUploadFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [lockingSending, setLockingSending] = useState(false);
-  const [showIncidentModal, setShowIncidentModal] = useState(false);
-  const [incidentDetails, setIncidentDetails] = useState(null);
   const fileInputRef = useRef(null);
   const [assignment, setAssignment] = useState(null);
   const [shiftStatus, setShiftStatus] = useState(null);
@@ -152,46 +149,21 @@ export default function ClientNotes() {
     setUploading(false);
   };
 
-  const handleLockAndSend = async (incidentConfirmed = false) => {
-    if (!incidentConfirmed && !window.confirm('Lock all consolidated notes and send to supervisor? This cannot be undone.')) return;
+  const handleLockAndSend = async () => {
+    if (!window.confirm('Lock all consolidated notes and send to supervisor? This cannot be undone.')) return;
 
     setLockingSending(true);
     setError("");
 
     try {
-      await api.post(`/api/staff/clients/${clientId}/notes/lock-and-send`, {
-        incidentConfirmed
-      });
+      await api.post(`/api/staff/clients/${clientId}/notes/lock-and-send`);
       await fetchData(false);
-      setShowIncidentModal(false);
       setLockingSending(false);
     } catch (err) {
-      console.log('Lock & Send Error:', err.response?.data);
-
-      // PRIORITY: Check if incident was detected
-      if (err.response?.data?.incident_detected === true) {
-        console.log('Incident detected - showing modal');
-        setIncidentDetails(err.response.data.incident_details);
-        setShowIncidentModal(true);
-        setLockingSending(false);
-        setError(""); // Clear any error message
-        return; // Exit early - don't show error
-      }
-
-      // Other errors
       console.error('Lock & Send failed:', err);
       setError(err.response?.data?.message || 'Failed to lock and send notes');
       setLockingSending(false);
     }
-  };
-
-  const handleConfirmNoIncident = async () => {
-    await handleLockAndSend(true); // Retry with incident confirmed
-  };
-
-  const handleAddIncident = () => {
-    setShowIncidentModal(false);
-    navigate(`/staff/clients/${clientId}/incident`);
   };
 
   const handleSaveOdometer = async () => {
@@ -622,7 +594,7 @@ export default function ClientNotes() {
             </h2>
             <motion.button
               className={styles.lockSendBtn}
-              onClick={() => handleLockAndSend(false)}
+              onClick={() => handleLockAndSend()}
               disabled={lockingSending}
               whileHover={!lockingSending ? { scale: 1.02 } : {}}
               whileTap={!lockingSending ? { scale: 0.98 } : {}}
@@ -813,15 +785,6 @@ export default function ClientNotes() {
         </>
       )}
 
-      {/* Incident Confirmation Modal */}
-      {showIncidentModal && (
-        <IncidentConfirmationModal
-          incidentDetails={incidentDetails}
-          onAddIncident={handleAddIncident}
-          onConfirmNoIncident={handleConfirmNoIncident}
-          onCancel={() => setShowIncidentModal(false)}
-        />
-      )}
     </DashboardLayout>
   );
 }

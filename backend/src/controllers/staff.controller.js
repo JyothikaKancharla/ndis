@@ -1085,9 +1085,10 @@ exports.confirmReviewNotes = async (req, res) => {
     );
 
     if (result.modifiedCount === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'No review notes found to confirm'
+      return res.status(200).json({
+        success: true,
+        message: 'No pending notes to confirm',
+        data: { modifiedCount: 0 }
       });
     }
 
@@ -1144,32 +1145,8 @@ exports.lockAndSendNotes = async (req, res) => {
       });
     }
 
-    // Check if an incident report is already included in the consolidated notes
-    if (!incidentConfirmed) {
-      const hasIncidentNote = consolidatedNotes.some(note =>
-        /^incident$/i.test(note.category) ||
-        (note.content && note.content.startsWith('[Incident Report]'))
-      );
-
-      console.log('🔍 Checking for incident report in consolidated notes...');
-      console.log('📋 Incident report included:', hasIncidentNote);
-
-      if (!hasIncidentNote) {
-        console.log('⚠️ No incident report found - requesting confirmation');
-        return res.status(400).json({
-          success: false,
-          message: 'Please confirm incident status',
-          incident_detected: true,
-          incident_details: {
-            keywords: [],
-            severity: 'Unknown',
-            reminder: 'Please confirm whether an incident occurred during this shift. If yes, use the Incident button to file a report before locking.'
-          }
-        });
-      }
-
-      console.log('✅ Incident report found in consolidated notes - allowing lock');
-    }
+    // Incident reporting is voluntary — staff uses the Incident button when needed.
+    // Do not block locking and sending based on incident presence.
 
     // Helper to convert Mongoose subdocuments to plain objects
     const toPlainAttachments = (attachments) => {
