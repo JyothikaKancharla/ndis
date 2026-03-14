@@ -184,7 +184,6 @@ const Signup = () => {
                 <option value="">Select your role</option>
                 <option value="staff">Staff</option>
                 <option value="supervisor">Supervisor</option>
-                <option value="government">Government</option>
               </select>
               <UserPlus className={styles.inputIcon} size={20} />
             </div>

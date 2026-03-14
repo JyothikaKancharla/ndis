@@ -377,8 +377,6 @@ exports.deleteNote = async (req, res) => {
 exports.lockNote = async (req, res) => {
   try {
     const { noteId } = req.params;
-    const { incidentConfirmed } = req.body; // Flag from frontend confirming no incident or incident already filed
-
     const note = await Note.findById(noteId);
     if (!note) {
       return res.status(404).json({
@@ -391,24 +389,6 @@ exports.lockNote = async (req, res) => {
       return res.status(403).json({
         success: false,
         message: 'You can only lock your own notes'
-      });
-    }
-
-    // Check for incident keywords using clinical analyzer
-    const { analyzeNoteContent, hasIncidentReport } = require('../utils/noteAnalyzer');
-    const analysis = analyzeNoteContent(note.content);
-
-    // If incident detected and not confirmed by staff, return warning
-    if (analysis.incident_report_required && !incidentConfirmed && !hasIncidentReport(note)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Incident detected in note',
-        incident_detected: true,
-        incident_details: {
-          keywords: analysis.keywords_found,
-          severity: analysis.sentiment,
-          reminder: 'This note appears to contain an incident. Please confirm incident status before locking.'
-        }
       });
     }
 
@@ -1115,7 +1095,6 @@ exports.confirmReviewNotes = async (req, res) => {
 exports.lockAndSendNotes = async (req, res) => {
   try {
     const { clientId } = req.params;
-    const { incidentConfirmed } = req.body;
 
     const assignment = await Assignment.findOne({
       staffId: req.user.id,
@@ -1280,8 +1259,8 @@ exports.unlockNote = async (req, res) => {
       });
     }
 
-    // Only supervisors and admins can unlock notes
-    if (req.user.role !== 'supervisor' && req.user.role !== 'admin') {
+    // Only supervisors can unlock notes
+    if (req.user.role !== 'supervisor') {
       return res.status(403).json({
         success: false,
         message: 'Only supervisors can unlock notes'

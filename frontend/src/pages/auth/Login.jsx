@@ -41,8 +41,6 @@ const Login = () => {
           navigate("/staff/dashboard");
         } else if (user.role === "supervisor") {
           navigate("/supervisor/dashboard");
-        } else if (user.role === "government") {
-          navigate("/government");
         } else {
           navigate("/");
         }

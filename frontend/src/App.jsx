@@ -18,7 +18,6 @@ import ShiftHistory from "./pages/staff/ShiftHistory";
 import StaffAppointments from "./pages/staff/StaffAppointments";
 import ClientAppointmentsView from "./pages/staff/ClientAppointmentsView";
 import SupervisorHome from "./pages/supervisor/Supervisordashboard";
-import GovernmentHome from "./pages/government/Governmentdashboard";
 import { AuthProvider } from "./context/AuthContext";
 import { RecordingProvider } from "./context/RecordingContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -151,7 +150,6 @@ function App() {
               element={<ViewNote />}
             />
             <Route path="/supervisor/*" element={<SupervisorHome />} />
-            <Route path="/government/*" element={<GovernmentHome />} />
           </Routes>
         </Router>
       </RecordingProvider>

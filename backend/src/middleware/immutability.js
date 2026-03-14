@@ -103,7 +103,7 @@ const checkAssignmentImmutability = (Assignment) => {
 
       // Only supervisors can modify assignments
       const userRole = req.user?.role;
-      if (userRole !== 'supervisor' && userRole !== 'admin') {
+      if (userRole !== 'supervisor') {
         return res.status(403).json({
           success: false,
           message: 'Only supervisors can modify assignments',

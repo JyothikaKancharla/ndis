@@ -161,7 +161,7 @@ const validateActiveShift = async (req, res, next) => {
     }
 
     // Enforce assignment and shift checks only for `staff` role.
-    // Supervisors and admins may perform consolidation or view notes without an active assignment.
+    // Supervisors may perform consolidation or view notes without an active assignment.
     if (req.user.role === 'staff') {
       // Find active assignment for this staff-client pair
       const assignment = await Assignment.findOne({
@@ -219,7 +219,7 @@ const validateActiveShift = async (req, res, next) => {
       return;
     }
 
-    // For supervisors/admins, skip assignment and shift enforcement
+    // For supervisors, skip assignment and shift enforcement
     next();
   } catch (error) {
     console.error('Error validating active shift:', error);

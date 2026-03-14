@@ -1,31 +1,50 @@
 /**
  * Shared utility for calculating assignment status dynamically
- * Used by both staff and supervisor controllers
+ * Uses India Standard Time (IST, Asia/Kolkata, UTC+5:30)
  */
-
-// Business timezone offset (IST = UTC+5:30). All shift times are in this timezone.
-const BUSINESS_TZ_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
 /**
- * Get a "fake-UTC" Date representing the current moment in the business timezone (IST).
- * Use getUTCFullYear/Month/Date/Hours/Minutes() on the result to get IST values.
+ * Get current time in IST
  */
-const nowInBusinessTZ = () => new Date(Date.now() + BUSINESS_TZ_OFFSET_MS);
+const getConfiguredTime = () => {
+  const timezone = process.env.TIMEZONE || 'Asia/Kolkata';
+
+  try {
+    const utcDate = new Date();
+    const timeString = utcDate.toLocaleString('en-US', {
+      timeZone: timezone
+    });
+    const configDate = new Date(timeString);
+    return configDate;
+  } catch (e) {
+    console.warn(`Invalid timezone: ${timezone}, falling back to local time`, e);
+    return new Date();
+  }
+};
+
+/**
+ * Get timezone offset in milliseconds (IST = UTC+5:30)
+ * KEPT FOR LEGACY - Use getConfiguredTime() instead
+ */
+const getTZOffset = () => {
+  return 5.5 * 60 * 60 * 1000; // IST = UTC+5:30
+};
+
+/**
+ * Get a "fake-UTC" Date representing the current moment in IST.
+ */
+const nowInBusinessTZ = () => new Date(Date.now() + getTZOffset());
 
 /**
  * Normalise a stored date to IST midnight, returned as a comparable timestamp.
- * Stored dates may be UTC midnight (ISO date strings) or local-midnight depending on the server.
- * Shifting by the offset and extracting UTC components gives the correct IST calendar date.
  */
 const toBusinessTZMidnight = (date) => {
-  const shifted = new Date(new Date(date).getTime() + BUSINESS_TZ_OFFSET_MS);
+  const shifted = new Date(new Date(date).getTime() + getTZOffset());
   return new Date(Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate()));
 };
 
 /**
  * Parse time string in format "7:00 AM" or "11:00 PM" to hours/minutes
- * @param {string} timeStr - Time in format "H:MM AM/PM"
- * @returns {object} { hours, minutes }
  */
 const parseTimeString = (timeStr) => {
   const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
@@ -43,20 +62,16 @@ const parseTimeString = (timeStr) => {
 
 /**
  * Calculate assignment status dynamically based on date and shift time
- * @param {Date|string} startDate - Assignment start date
- * @param {Date|string|null} endDate - Assignment end date (optional)
- * @param {string} shift - Shift time string (e.g., "7:00 AM - 3:00 PM")
- * @returns {object} { status, badge, shiftPhase, isActive }
  */
-const calculateDynamicStatus = (startDate, endDate, shift) => {
+// eslint-disable-next-line no-unused-vars
+const calculateDynamicStatus = (startDate, _endDate, shift) => {
   try {
-    // All date/time comparisons are done in the business timezone (IST = UTC+5:30).
-    // nowIST and todayIST are "fake-UTC" dates whose getUTC* methods return IST values.
-    const nowIST = nowInBusinessTZ();
-    const todayIST = new Date(Date.UTC(nowIST.getUTCFullYear(), nowIST.getUTCMonth(), nowIST.getUTCDate()));
-    const assignDayIST = toBusinessTZMidnight(startDate);
+    const now = getConfiguredTime();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    // Validate shift format
+    const assignDay = new Date(startDate);
+    assignDay.setHours(0, 0, 0, 0);
+
     if (!shift || !shift.includes(' - ')) {
       return {
         status: 'Unknown',
@@ -70,21 +85,20 @@ const calculateDynamicStatus = (startDate, endDate, shift) => {
     const startTime = parseTimeString(startStr);
     const endTime = parseTimeString(endStr);
 
-    // Build shift start/end by adding IST hours to the IST midnight of the assignment day
-    const msPerHour = 1000 * 60 * 60;
-    const msPerDay = msPerHour * 24;
+    let shiftStart = new Date(assignDay);
+    shiftStart.setHours(startTime.hours, startTime.minutes, 0, 0);
 
-    let shiftStart = new Date(assignDayIST.getTime() + (startTime.hours * 60 + startTime.minutes) * 60 * 1000);
-    let shiftEnd   = new Date(assignDayIST.getTime() + (endTime.hours   * 60 + endTime.minutes)   * 60 * 1000);
+    let shiftEnd = new Date(assignDay);
+    shiftEnd.setHours(endTime.hours, endTime.minutes, 0, 0);
 
     // Handle overnight shifts (e.g., 10:00 PM - 6:00 AM)
     if (shiftEnd < shiftStart) {
-      shiftEnd = new Date(shiftEnd.getTime() + msPerDay);
+      shiftEnd.setDate(shiftEnd.getDate() + 1);
     }
 
     // Current: Today AND within shift times
-    if (assignDayIST.getTime() === todayIST.getTime() && nowIST >= shiftStart && nowIST < shiftEnd) {
-      const hoursRemaining = Math.ceil((shiftEnd - nowIST) / msPerHour);
+    if (assignDay.getTime() === today.getTime() && now >= shiftStart && now < shiftEnd) {
+      const hoursRemaining = Math.ceil((shiftEnd - now) / (1000 * 60 * 60));
       return {
         status: 'Current',
         badge: 'IN PROGRESS',
@@ -95,12 +109,12 @@ const calculateDynamicStatus = (startDate, endDate, shift) => {
     }
 
     // Upcoming: Future date OR today before shift starts
-    if (assignDayIST.getTime() > todayIST.getTime() || (assignDayIST.getTime() === todayIST.getTime() && nowIST < shiftStart)) {
-      const daysUntil = Math.floor((assignDayIST - todayIST) / msPerDay);
-      let badge;
+    if (assignDay.getTime() > today.getTime() || (assignDay.getTime() === today.getTime() && now < shiftStart)) {
+      const daysUntil = Math.floor((assignDay - today) / (1000 * 60 * 60 * 24));
+      const hoursUntil = Math.ceil((shiftStart - now) / (1000 * 60 * 60));
 
+      let badge;
       if (daysUntil === 0) {
-        const hoursUntil = Math.ceil((shiftStart - nowIST) / msPerHour);
         badge = hoursUntil <= 12 ? `IN ${hoursUntil}H` : 'TODAY';
       } else if (daysUntil === 1) {
         badge = 'TOMORROW';
@@ -117,8 +131,8 @@ const calculateDynamicStatus = (startDate, endDate, shift) => {
       };
     }
 
-    // Completed: Past date OR today after shift ended
-    const daysSince = Math.floor((todayIST - assignDayIST) / msPerDay);
+    // Previous: Past date OR today after shift ended
+    const daysSince = Math.floor((today - assignDay) / (1000 * 60 * 60 * 24));
     let badge;
 
     if (daysSince === 0) {
@@ -148,10 +162,7 @@ const calculateDynamicStatus = (startDate, endDate, shift) => {
 };
 
 /**
- * Simple status calculation (returns string only, for backward compatibility)
- * @param {Date|string} startDate - Assignment start date
- * @param {string} shift - Shift time string
- * @returns {string} 'Current' | 'Pending' | 'Previous'
+ * Simple status calculation (returns string only)
  */
 const calculateSimpleStatus = (startDate, shift) => {
   const result = calculateDynamicStatus(startDate, null, shift);
@@ -160,13 +171,11 @@ const calculateSimpleStatus = (startDate, shift) => {
 
 /**
  * Format date for display
- * @param {Date|string} date - Date to format
- * @returns {object} { short, full, relative }
  */
 const formatDateDisplay = (date) => {
   const d = new Date(date);
-  const nowIST = nowInBusinessTZ();
-  const today = new Date(Date.UTC(nowIST.getUTCFullYear(), nowIST.getUTCMonth(), nowIST.getUTCDate()));
+  const nowAET = nowInBusinessTZ();
+  const today = new Date(Date.UTC(nowAET.getUTCFullYear(), nowAET.getUTCMonth(), nowAET.getUTCDate()));
   const dateDay = toBusinessTZMidnight(d);
 
   const diffDays = Math.floor((dateDay - today) / (1000 * 60 * 60 * 24));
@@ -185,8 +194,8 @@ const formatDateDisplay = (date) => {
   }
 
   return {
-    short: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    full: d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+    short: d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
+    full: d.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
     relative,
     iso: d.toISOString().split('T')[0]
   };

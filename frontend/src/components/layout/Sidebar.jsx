@@ -59,13 +59,6 @@ const Sidebar = () => {
       ];
     }
 
-    if (role === 'government') {
-      return [
-        { path: '/government', icon: LayoutDashboard, label: 'Dashboard', description: 'Overview & stats' },
-        { path: '/government/reports', icon: ClipboardList, label: 'Reports', description: 'View reports' },
-      ];
-    }
-
     return [];
   };
 

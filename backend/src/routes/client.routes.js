@@ -3,8 +3,8 @@ const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth.middleware');
 const clientController = require('../controllers/client.controller');
 
-// All routes require supervisor or admin role
-router.use(authenticate, authorize('supervisor', 'admin'));
+// All routes require supervisor role
+router.use(authenticate, authorize('supervisor'));
 
 // IMPORTANT: More specific routes MUST come before generic :clientId route
 

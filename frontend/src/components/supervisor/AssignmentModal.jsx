@@ -162,6 +162,11 @@ const AssignmentModal = ({
         throw new Error('Please select a start date');
       }
 
+      // For create/reassign/new_shift modes, require confirmation
+      if ((mode === 'create' || mode === 'reassign' || mode === 'new_shift') && !formData.confirmAssignment) {
+        throw new Error('Please confirm the assignment before creating');
+      }
+
       // Prepare submission data
       const submitData = {
         ...formData,
@@ -240,15 +245,16 @@ const AssignmentModal = ({
           <button
             type="submit"
             form="assignment-form"
-            disabled={loading}
+            disabled={loading || ((mode === 'create' || mode === 'reassign' || mode === 'new_shift') && !formData.confirmAssignment)}
             style={{
               padding: '10px 20px',
-              backgroundColor: loading ? '#9ca3af' : '#7c3aed',
+              backgroundColor: (loading || ((mode === 'create' || mode === 'reassign' || mode === 'new_shift') && !formData.confirmAssignment)) ? '#9ca3af' : '#7c3aed',
               color: 'white',
               border: 'none',
               borderRadius: '6px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              fontWeight: '600'
+              cursor: (loading || ((mode === 'create' || mode === 'reassign' || mode === 'new_shift') && !formData.confirmAssignment)) ? 'not-allowed' : 'pointer',
+              fontWeight: '600',
+              opacity: (loading || ((mode === 'create' || mode === 'reassign' || mode === 'new_shift') && !formData.confirmAssignment)) ? 0.6 : 1
             }}
           >
             {loading ? 'Saving...' : getSubmitLabel()}

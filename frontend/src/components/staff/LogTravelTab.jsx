@@ -119,7 +119,7 @@ const LogTravelTab = ({ onStatsUpdate }) => {
     : 0;
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-AU');
+    return new Date(dateString).toLocaleDateString('en-IN');
   };
 
   if (loading) {

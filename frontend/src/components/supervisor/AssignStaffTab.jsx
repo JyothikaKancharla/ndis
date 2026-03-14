@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../api/api';
-import { getAssignmentDateStatus, sortAssignmentsByDateStatus } from '../../utils/shiftStatus';
+import { getAssignmentDateStatus, sortAssignmentsByDateStatus, formatAssignmentDisplay } from '../../utils/shiftStatus';
 import AssignmentModal from './AssignmentModal';
 
 const AssignStaffTab = () => {
@@ -83,6 +83,13 @@ const AssignStaffTab = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate confirmation
+    if (!formData.confirmAssignment) {
+      alert('⚠️ Please confirm the assignment before creating');
+      return;
+    }
+    
     console.log('📝 Submitting assignment with data:', formData);
     try {
       const response = await api.post('/api/supervisor/assignments', formData);
@@ -324,16 +331,18 @@ const AssignStaffTab = () => {
 
         <button
           type="submit"
+          disabled={!formData.confirmAssignment}
           style={{
             gridColumn: '1 / -1',
             padding: '10px 20px',
-            backgroundColor: '#7c3aed',
+            backgroundColor: formData.confirmAssignment ? '#7c3aed' : '#d1d5db',
             color: 'white',
             border: 'none',
             borderRadius: '6px',
-            cursor: 'pointer',
+            cursor: formData.confirmAssignment ? 'pointer' : 'not-allowed',
             fontWeight: '600',
-            fontSize: '16px'
+            fontSize: '16px',
+            opacity: formData.confirmAssignment ? 1 : 0.6
           }}
         >
           Create Assignment
@@ -348,6 +357,7 @@ const AssignStaffTab = () => {
           <div style={{ display: 'grid', gap: '12px' }}>
             {sortAssignmentsByDateStatus(assignments).map(assignment => {
               const dateStatus = getAssignmentDateStatus(assignment.startDate, assignment.shift);
+              const displayInfo = formatAssignmentDisplay(assignment);
 
               return (
                 <div
@@ -385,7 +395,7 @@ const AssignStaffTab = () => {
                           <strong>Shift:</strong> {assignment.shift}
                         </p>
                         <p style={{ margin: '0' }}>
-                          <strong>Date:</strong> {new Date(assignment.startDate).toLocaleDateString('en-AU')}
+                          <strong>Date:</strong> {displayInfo?.fullDate || new Date(assignment.startDate).toLocaleDateString('en-IN')}
                         </p>
                         <p style={{ margin: '0' }}>
                           <strong>Status:</strong> {dateStatus.status}

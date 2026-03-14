@@ -56,7 +56,7 @@ exports.signup = async (req, res) => {
     if (existingUser) return res.status(400).json({ message: "User already exists" });
 
     // Only allow valid roles
-    if (!["government", "supervisor", "staff"].includes(role)) {
+    if (!["supervisor", "staff"].includes(role)) {
       return res.status(400).json({ message: "Invalid role" });
     }
 

@@ -54,18 +54,18 @@ const MyScheduleTab = () => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' });
+    return new Date(dateString).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
   };
 
   const formatWeekRange = (date) => {
     const start = getStartOfWeek(new Date(date));
     const end = new Date(start);
     end.setDate(end.getDate() + 6);
-    return `${start.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-AU', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    return `${start.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}`;
   };
 
   const getDayName = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-AU', { weekday: 'short' });
+    return new Date(dateString).toLocaleDateString('en-IN', { weekday: 'short' });
   };
 
   const isToday = (dateString) => {

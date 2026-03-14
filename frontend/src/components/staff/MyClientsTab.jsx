@@ -47,11 +47,11 @@ const MyClientsTab = () => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-AU');
+    return new Date(dateString).toLocaleDateString('en-IN');
   };
 
   const formatDateTime = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-AU', {
+    return new Date(dateString).toLocaleDateString('en-IN', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',

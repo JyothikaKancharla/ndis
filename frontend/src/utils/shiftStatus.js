@@ -1,4 +1,24 @@
 /**
+ * Get current time in configured timezone (India Standard Time)
+ */
+const getConfiguredTime = () => {
+  const timezone = process.env.REACT_APP_TIMEZONE || 'Asia/Kolkata';
+  
+  try {
+    const utcDate = new Date();
+    const timeString = utcDate.toLocaleString('en-US', { 
+      timeZone: timezone 
+    });
+    const configDate = new Date(timeString);
+    return configDate;
+  } catch (e) {
+    // Fallback if timezone is invalid
+    console.warn(`Invalid timezone: ${timezone}, falling back to local time`);
+    return new Date();
+  }
+};
+
+/**
  * Get assignment status based on DATE + SHIFT TIME
  * 
  * Rules:
@@ -14,7 +34,7 @@ export const getAssignmentDateStatus = (assignmentDate, shiftTime) => {
     return { status: 'Unknown', badge: '❓ UNKNOWN', color: { bg: '#f3f4f6', border: '#9ca3af', text: '#6b7280' } };
   }
 
-  const now = new Date();
+  const now = getConfiguredTime();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   
   const assignDay = new Date(assignmentDate);
@@ -104,7 +124,7 @@ export const getShiftStatus = (shiftTime, shiftDate) => {
     return { status: 'Unknown', color: '#999', icon: '❓' };
   }
 
-  const now = new Date();
+  const now = getConfiguredTime();
   const shiftDay = new Date(shiftDate);
   shiftDay.setHours(0, 0, 0, 0);
 
@@ -192,8 +212,8 @@ export const formatDateForDisplay = (date) => {
   if (!date) return { relative: 'Unknown', short: '', full: '' };
 
   const d = new Date(date);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = getConfiguredTime();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const dateDay = new Date(d);
   dateDay.setHours(0, 0, 0, 0);
 
@@ -214,9 +234,9 @@ export const formatDateForDisplay = (date) => {
 
   return {
     relative,
-    short: d.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }),
-    full: d.toLocaleDateString('en-AU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
-    weekday: d.toLocaleDateString('en-AU', { weekday: 'short' }),
+    short: d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
+    full: d.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+    weekday: d.toLocaleDateString('en-IN', { weekday: 'short' }),
     iso: d.toISOString().split('T')[0]
   };
 };

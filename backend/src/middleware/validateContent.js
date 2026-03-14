@@ -242,8 +242,8 @@ const validateStaffOwnership = (req, res, next) => {
   const userId = req.user?._id || req.user?.id;
   const userRole = req.user?.role;
 
-  // Allow supervisors and admins to assign any staff
-  if (userRole === 'supervisor' || userRole === 'admin') {
+  // Allow supervisors to assign any staff
+  if (userRole === 'supervisor') {
     return next();
   }
 

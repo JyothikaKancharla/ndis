@@ -78,11 +78,6 @@ const getBreadcrumbs = (pathname) => {
     if (page === 'shift-history') return [dash, { label: 'Shift History' }];
   }
 
-  if (role === 'government') {
-    const page = segments[1];
-    if (page === 'reports') return [{ label: 'Reports' }];
-  }
-
   return crumbs.length >= 2 ? crumbs : [];
 };
 

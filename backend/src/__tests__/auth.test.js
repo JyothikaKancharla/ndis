@@ -53,7 +53,7 @@ describe('POST /api/auth/signup', () => {
       name: 'Test User',
       email: 'test@test.com',
       password: 'password123',
-      role: 'admin', // not a valid role
+      role: 'government', // not a valid role
     });
 
     expect(res.statusCode).toBe(400);
@@ -78,13 +78,8 @@ describe('POST /api/auth/signup', () => {
     expect(res.statusCode).toBe(201);
   });
 
-  test('201 - accepts government role', async () => {
+  test('400 - rejects government role', async () => {
     User.findOne.mockResolvedValue(null);
-    User.prototype.save = jest.fn().mockResolvedValue();
-    User.prototype._id = 'mockId789';
-    User.prototype.name = 'Gov User';
-    User.prototype.email = 'gov@test.com';
-    User.prototype.role = 'government';
 
     const res = await request(app).post('/api/auth/signup').send({
       name: 'Gov User',
@@ -93,7 +88,8 @@ describe('POST /api/auth/signup', () => {
       role: 'government',
     });
 
-    expect(res.statusCode).toBe(201);
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe('Invalid role');
   });
 });
 
